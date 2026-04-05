@@ -1,0 +1,14 @@
+{
+  "uuid": "window-on-top-float@hectorandac.github.io",
+  "name": "Window on Top (Float)",
+  "description": "A floating circular button that appears near the top edge of non-maximized windows for toggling Always on Top. Supports multiple pinned windows, proximity-based reveal with smooth animations, left or right positioning, persistent visibility for pinned windows, and automatic light or dark theme adaptation.",
+  "settings-schema": "org.gnome.shell.extensions.window-on-top",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49"
+  ],
+  "url": "https://github.com/hectorandac/window-on-top-float"
+}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.window-on-top"
+          path="/org/gnome/shell/extensions/window-on-top/">
+    <key name="icon-position" type="s">
+      <default>'left'</default>
+      <summary>Icon position</summary>
+      <description>Which corner of the window to show the floating icon: 'left' or 'right'.</description>
+    </key>
+    <key name="keep-visible-when-pinned" type="b">
+      <default>true</default>
+      <summary>Keep visible when pinned</summary>
+      <description>When true, the floating icon stays visible while the window is pinned on top, without requiring mouse proximity.</description>
+    </key>
+    <key name="persist-without-focus" type="b">
+      <default>true</default>
+      <summary>Persist without focus</summary>
+      <description>When true, the floating icon stays attached to a pinned window even when another window gets focus.</description>
+    </key>
+  </schema>
+</schemalist>
