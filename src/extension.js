@@ -53,26 +53,28 @@ class WindowWidget {
         });
         this._button.set_pivot_point(0.5, 0.5);
 
-        this._button.connect('button-press-event', () => {
-            this._toggleOnTop();
-            return Clutter.EVENT_STOP;
-        });
-        this._button.connect('touch-event', (_actor, event) => {
-            if (event.type() === Clutter.EventType.TOUCH_BEGIN) {
+        this._buttonSignals = [
+            this._button.connect('button-press-event', () => {
                 this._toggleOnTop();
                 return Clutter.EVENT_STOP;
-            }
-            return Clutter.EVENT_PROPAGATE;
-        });
-        this._button.connect('enter-event', () => {
-            if (!this._isShown) return;
-            this._button.ease({ opacity: 255, duration: 100, mode: Clutter.AnimationMode.LINEAR });
-        });
-        this._button.connect('leave-event', () => {
-            if (!this._isShown) return;
-            const pinVis = this._isPinnedVisible();
-            this._button.ease({ opacity: pinVis ? 160 : 200, duration: 100, mode: Clutter.AnimationMode.LINEAR });
-        });
+            }),
+            this._button.connect('touch-event', (_actor, event) => {
+                if (event.type() === Clutter.EventType.TOUCH_BEGIN) {
+                    this._toggleOnTop();
+                    return Clutter.EVENT_STOP;
+                }
+                return Clutter.EVENT_PROPAGATE;
+            }),
+            this._button.connect('enter-event', () => {
+                if (!this._isShown) return;
+                this._button.ease({ opacity: 255, duration: 100, mode: Clutter.AnimationMode.LINEAR });
+            }),
+            this._button.connect('leave-event', () => {
+                if (!this._isShown) return;
+                const pinVis = this._isPinnedVisible();
+                this._button.ease({ opacity: pinVis ? 160 : 200, duration: 100, mode: Clutter.AnimationMode.LINEAR });
+            }),
+        ];
 
         Main.layoutManager.addTopChrome(this._button);
 
@@ -102,6 +104,9 @@ class WindowWidget {
     destroy() {
         this._disconnectWindow();
         if (this._button) {
+            for (const id of this._buttonSignals)
+                this._button.disconnect(id);
+            this._buttonSignals = [];
             this.hide(true);
             Main.layoutManager.removeChrome(this._button);
             this._button.destroy();
@@ -139,7 +144,8 @@ class WindowWidget {
     getTargetPosition() {
         const win = this._win;
         if (!win) return null;
-        if (win.get_maximized() === Meta.MaximizeFlags.BOTH) return null;
+        const maximized = win.maximized_horizontally && win.maximized_vertically;
+        if (maximized) return null;
         if (win.minimized) return null;
 
         const rect = win.get_frame_rect();
