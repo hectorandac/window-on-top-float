@@ -431,12 +431,51 @@ export default class WindowOnTopFloatExtension extends Extension {
         const [mx, my] = global.get_pointer();
         const activeWs = global.workspace_manager.get_active_workspace();
 
+        // Build stacking order (bottom → top) for occlusion checks
+        const actors = global.get_window_actors();
+        const stackOrder = new Map(); // Meta.Window → index (higher = on top)
+        for (let i = 0; i < actors.length; i++) {
+            const mw = actors[i].meta_window;
+            if (mw) stackOrder.set(mw, i);
+        }
+
         for (const [win, widget] of this._widgets) {
             // Only show widgets for windows on the current workspace
             if (win.get_workspace() !== activeWs || win.minimized) {
                 if (widget._isShown) widget.hide();
                 continue;
             }
+
+            // Occlusion check: hide button if ANY window above covers its position
+            const pos = widget.getTargetPosition();
+            if (pos) {
+                const btnSize = ICON_SIZE + BUTTON_PADDING * 2;
+                const btnCx = pos.x + btnSize / 2;
+                const btnCy = pos.y + btnSize / 2;
+                const myStack = stackOrder.get(win) ?? -1;
+                let occluded = false;
+
+                for (let i = 0; i < actors.length; i++) {
+                    if (i <= myStack) continue;
+                    const otherWin = actors[i].meta_window;
+                    if (!otherWin || otherWin === win) continue;
+                    if (otherWin.minimized) continue;
+                    if (otherWin.get_workspace() !== activeWs) continue;
+
+                    const r = otherWin.get_frame_rect();
+                    if (btnCx >= r.x && btnCx <= r.x + r.width &&
+                        btnCy >= r.y && btnCy <= r.y + r.height) {
+                        occluded = true;
+                        break;
+                    }
+                }
+
+                if (occluded) {
+                    if (widget._isShown) widget.hide();
+                    continue;
+                }
+            }
+
             widget.checkProximity(mx, my);
         }
     }

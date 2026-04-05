@@ -8,7 +8,7 @@ EXTENSION_BUNDLE = build/$(EXTENSION_UUID).shell-extension.zip
 $(EXTENSION_BUNDLE): $(SRC_FILES)
 	mkdir -p build
 	rm -f $(COMPILED_SCHEMAS)
-	gnome-extensions pack -fo build src
+	gnome-extensions pack -fo build --extra-source=icons src
 
 .PHONY: build
 build: $(EXTENSION_BUNDLE)
