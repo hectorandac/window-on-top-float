@@ -431,13 +431,19 @@ export default class WindowOnTopFloatExtension extends Extension {
         const [mx, my] = global.get_pointer();
         const activeWs = global.workspace_manager.get_active_workspace();
 
-        // Build stacking order (bottom → top) for occlusion checks
-        const actors = global.get_window_actors();
-        const stackOrder = new Map(); // Meta.Window → index (higher = on top)
-        for (let i = 0; i < actors.length; i++) {
-            const mw = actors[i].meta_window;
-            if (mw) stackOrder.set(mw, i);
+        // Collect visible windows on current workspace, sorted by stacking
+        // (sort_windows_by_stacking returns bottom → top order)
+        const visibleWindows = [];
+        for (const actor of global.get_window_actors()) {
+            const mw = actor.meta_window;
+            if (!mw || mw.minimized) continue;
+            if (mw.get_workspace() !== activeWs) continue;
+            visibleWindows.push(mw);
         }
+        const sorted = global.display.sort_windows_by_stacking(visibleWindows);
+        const stackIndex = new Map();
+        for (let i = 0; i < sorted.length; i++)
+            stackIndex.set(sorted[i], i);
 
         for (const [win, widget] of this._widgets) {
             // Only show widgets for windows on the current workspace
@@ -446,25 +452,28 @@ export default class WindowOnTopFloatExtension extends Extension {
                 continue;
             }
 
-            // Occlusion check: hide button if ANY window above covers its position
+            // Occlusion: hide the button when ANY higher-stacked window
+            // covers either the button itself or the top-edge of the
+            // parent window where the button visually attaches.
             const pos = widget.getTargetPosition();
             if (pos) {
                 const btnSize = ICON_SIZE + BUTTON_PADDING * 2;
                 const btnCx = pos.x + btnSize / 2;
                 const btnCy = pos.y + btnSize / 2;
-                const myStack = stackOrder.get(win) ?? -1;
+                const frameRect = win.get_frame_rect();
+                const attachX = btnCx;
+                const attachY = frameRect.y + 2;
+                const myIdx = stackIndex.get(win) ?? -1;
                 let occluded = false;
 
-                for (let i = 0; i < actors.length; i++) {
-                    if (i <= myStack) continue;
-                    const otherWin = actors[i].meta_window;
-                    if (!otherWin || otherWin === win) continue;
-                    if (otherWin.minimized) continue;
-                    if (otherWin.get_workspace() !== activeWs) continue;
-
-                    const r = otherWin.get_frame_rect();
-                    if (btnCx >= r.x && btnCx <= r.x + r.width &&
-                        btnCy >= r.y && btnCy <= r.y + r.height) {
+                for (let i = myIdx + 1; i < sorted.length; i++) {
+                    const other = sorted[i];
+                    const r = other.get_frame_rect();
+                    const coversBtn = btnCx >= r.x && btnCx <= r.x + r.width &&
+                                      btnCy >= r.y && btnCy <= r.y + r.height;
+                    const coversAttach = attachX >= r.x && attachX <= r.x + r.width &&
+                                         attachY >= r.y && attachY <= r.y + r.height;
+                    if (coversBtn || coversAttach) {
                         occluded = true;
                         break;
                     }
